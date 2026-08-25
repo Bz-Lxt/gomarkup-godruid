@@ -30,7 +30,7 @@ type App struct {
 	ring     *metrics.Ring
 	hub      *observe.Hub
 	work     *demo.Engine
-	fake     demo.FaultSink
+	fake     *fake.Connector
 	server   *control.Server
 	stop     context.CancelFunc
 }
