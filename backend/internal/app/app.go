@@ -123,11 +123,12 @@ func (a *App) capture(seq uint64) metrics.Snapshot {
 	now := timeutil.Now()
 	borrow, ret, hit, sampled := a.pool.Metrics().SnapshotRates(a.settings.Pool.SnapshotInterval)
 	avg, p50, p95, p99, n := a.pool.Waits().Stats(a.pool.Clock().Now())
+	counts, views := a.pool.CountsAndViews()
 	return metrics.Snapshot{
 		Seq:        seq,
 		ServerTime: now,
 		PoolID:     a.pool.ID(),
-		Counts:     a.pool.Counts(),
+		Counts:     counts,
 		Rates: metrics.Rates{
 			BorrowRPS:     borrow,
 			ReturnRPS:     ret,
@@ -141,7 +142,7 @@ func (a *App) capture(seq uint64) metrics.Snapshot {
 			P99MS:   metrics.DurationMS(p99),
 			Samples: n,
 		},
-		Connections: a.pool.Views(),
+		Connections: views,
 	}
 }
 

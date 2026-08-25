@@ -31,7 +31,6 @@ type Pool struct {
 
 	mu      sync.Mutex
 	list    connList
-	views   []metrics.ConnView
 	idle    chan idleToken
 	waiters int
 	dialing int
@@ -491,6 +490,15 @@ func (p *Pool) Counts() metrics.Counts {
 	return p.countsLocked()
 }
 
+// CountsAndViews returns counts and connection views captured atomically
+// under a single lock. This prevents torn frames where the aggregate counts
+// and the per-connection states are observed at different points in time.
+func (p *Pool) CountsAndViews() (metrics.Counts, []metrics.ConnView) {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	return p.countsLocked(), p.viewsLocked()
+}
+
 func (p *Pool) countsLocked() metrics.Counts {
 	var c metrics.Counts
 	p.list.ForEach(func(n *Node) bool {
@@ -521,8 +529,12 @@ func (p *Pool) countsLocked() metrics.Counts {
 func (p *Pool) Views() []metrics.ConnView {
 	p.mu.Lock()
 	defer p.mu.Unlock()
+	return p.viewsLocked()
+}
+
+func (p *Pool) viewsLocked() []metrics.ConnView {
 	nodes := p.list.Snapshot()
-	out := p.views[:0]
+	out := make([]metrics.ConnView, 0, len(nodes))
 	for _, n := range nodes {
 		out = append(out, metrics.ConnView{
 			ConnectionID: n.id,
@@ -536,7 +548,6 @@ func (p *Pool) Views() []metrics.ConnView {
 			LastError:    n.lastErr,
 		})
 	}
-	p.views = out
 	return out
 }
 
