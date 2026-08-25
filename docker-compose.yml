@@ -1,0 +1,40 @@
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    image: godruid-backend:local
+    environment:
+      TZ: Asia/Shanghai
+      GODRUID_LISTEN: ":8080"
+      GODRUID_DEMO: "true"
+      GODRUID_CONNECTOR: fake
+      GODRUID_LOG_LEVEL: info
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8080/healthz"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+      start_period: 15s
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend-user
+      dockerfile: Dockerfile
+    image: godruid-frontend:local
+    ports:
+      - "${GODRUID_HOST_PORT:-18080}:8080"
+    environment:
+      TZ: Asia/Shanghai
+      BACKEND_UPSTREAM: backend:8080
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8080/healthz"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+      start_period: 10s
+    restart: unless-stopped
