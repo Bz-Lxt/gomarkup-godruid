@@ -2,7 +2,6 @@ package lifecycle
 
 import (
 	"context"
-	"time"
 )
 
 func (s *Supervisor) reconnect(id string) {
@@ -44,5 +43,4 @@ func (s *Supervisor) doReconnect(ctx context.Context, id string) {
 		}
 	}
 	s.pool.CompleteReconnect(n, nil, last)
-	_ = time.Time{}
 }

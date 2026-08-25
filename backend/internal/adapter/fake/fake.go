@@ -11,9 +11,9 @@ import (
 )
 
 var (
-	ErrInjected  = errors.New("injected failure")
-	ErrClosed    = errors.New("fake connection closed")
-	ErrCanceled  = context.Canceled
+	ErrInjected = errors.New("injected failure")
+	ErrClosed   = errors.New("fake connection closed")
+	ErrCanceled = context.Canceled
 )
 
 type Options struct {
@@ -42,6 +42,14 @@ func (c *Connector) Kind() string { return "fake" }
 func (c *Connector) SetFailPing(v bool) {
 	c.mu.Lock()
 	c.failPing = v
+	c.mu.Unlock()
+}
+
+// SetDialDelay updates the connect latency for subsequent Connect calls. It is
+// used by tests to inject a slow dial that only context cancellation can end.
+func (c *Connector) SetDialDelay(d time.Duration) {
+	c.mu.Lock()
+	c.dialDelay = d
 	c.mu.Unlock()
 }
 
