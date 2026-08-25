@@ -2,7 +2,6 @@ package lifecycle
 
 import (
 	"context"
-	"time"
 )
 
 func (s *Supervisor) reconnect(id string) {
@@ -30,7 +29,7 @@ func (s *Supervisor) doReconnect(ctx context.Context, id string) {
 			s.pool.CompleteReconnect(n, raw, nil)
 			return
 		}
-		last := err
+		last = err
 		s.log.Debug("reconnect attempt failed", "connection_id", id, "attempt", attempt, "error", last)
 		delay := Backoff(attempt, cfg.ReconnectBaseDelay, cfg.ReconnectMaxDelay)
 		timer := s.pool.Clock().After(delay)
@@ -47,5 +46,4 @@ func (s *Supervisor) doReconnect(ctx context.Context, id string) {
 	if last != nil {
 		s.pool.CompleteReconnect(n, nil, last)
 	}
-	_ = time.Time{}
 }
