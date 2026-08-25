@@ -60,11 +60,11 @@ func New(settings Settings, log *slog.Logger) (*App, error) {
 
 func (a *App) Start() error {
 	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
 	a.stop = cancel
 	a.super.Start()
 	go a.sampleLoop(ctx)
 	if err := a.server.Start(); err != nil {
+		cancel()
 		return err
 	}
 	if a.settings.Demo {
