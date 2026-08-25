@@ -290,8 +290,9 @@ func (p *Pool) dialAndAttach(ctx context.Context) (*Node, error) {
 	p.dialing--
 	n := p.newNodeLocked(raw, StateInUse)
 	if p.closed {
+		p.transitionLocked(n, StateClosing)
 		p.mu.Unlock()
-		_ = raw.Close()
+		p.finishClose(n)
 		return nil, ErrPoolClosed
 	}
 	n.lastBorrow = p.clk.Now()
