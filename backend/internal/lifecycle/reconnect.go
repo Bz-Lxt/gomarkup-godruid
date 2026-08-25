@@ -27,7 +27,7 @@ func (s *Supervisor) doReconnect(ctx context.Context, id string) {
 		raw, err := s.pool.Connector().Connect(dctx)
 		cancel()
 		if err == nil {
-			s.pool.CompleteReconnect(n, raw, last)
+			s.pool.CompleteReconnect(n, raw, nil)
 			return
 		}
 		last = err
