@@ -9,6 +9,7 @@ import (
 type Group struct {
 	sem chan struct{}
 	wg  sync.WaitGroup
+	mu  sync.Mutex
 }
 
 func NewGroup(limit int) *Group {
@@ -19,6 +20,8 @@ func NewGroup(limit int) *Group {
 }
 
 func (g *Group) Go(ctx context.Context, fn func(context.Context)) bool {
+	g.mu.Lock()
+	defer g.mu.Unlock()
 	select {
 	case g.sem <- struct{}{}:
 	case <-ctx.Done():
@@ -33,4 +36,8 @@ func (g *Group) Go(ctx context.Context, fn func(context.Context)) bool {
 	return true
 }
 
-func (g *Group) Wait() { g.wg.Wait() }
+func (g *Group) Wait() {
+	g.mu.Lock()
+	defer g.mu.Unlock()
+	g.wg.Wait()
+}

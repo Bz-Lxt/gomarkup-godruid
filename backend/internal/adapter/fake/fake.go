@@ -17,24 +17,26 @@ var (
 )
 
 type Options struct {
-	DialDelay time.Duration
-	PingDelay time.Duration
+	DialDelay  time.Duration
+	PingDelay  time.Duration
+	CloseDelay time.Duration
 }
 
 type Connector struct {
-	mu        sync.Mutex
-	seq       atomic.Uint64
-	failPing  bool
-	failDial  bool
-	dropNext  int
-	dialDelay time.Duration
-	pingDelay time.Duration
-	closes    atomic.Int64
-	dials     atomic.Int64
+	mu         sync.Mutex
+	seq        atomic.Uint64
+	failPing   bool
+	failDial   bool
+	dropNext   int
+	dialDelay  time.Duration
+	pingDelay  time.Duration
+	closeDelay time.Duration
+	closes     atomic.Int64
+	dials      atomic.Int64
 }
 
 func New(opts Options) *Connector {
-	return &Connector{dialDelay: opts.DialDelay, pingDelay: opts.PingDelay}
+	return &Connector{dialDelay: opts.DialDelay, pingDelay: opts.PingDelay, closeDelay: opts.CloseDelay}
 }
 
 func (c *Connector) Kind() string { return "fake" }
@@ -54,6 +56,12 @@ func (c *Connector) SetFailDial(v bool) {
 func (c *Connector) SetDropNext(n int) {
 	c.mu.Lock()
 	c.dropNext = n
+	c.mu.Unlock()
+}
+
+func (c *Connector) SetCloseDelay(d time.Duration) {
+	c.mu.Lock()
+	c.closeDelay = d
 	c.mu.Unlock()
 }
 
@@ -121,6 +129,12 @@ func (c *Conn) Ping(ctx context.Context) error {
 func (c *Conn) Close() error {
 	if c.closed.Swap(true) {
 		return nil
+	}
+	c.parent.mu.Lock()
+	delay := c.parent.closeDelay
+	c.parent.mu.Unlock()
+	if delay > 0 {
+		time.Sleep(delay)
 	}
 	c.parent.closes.Add(1)
 	return nil

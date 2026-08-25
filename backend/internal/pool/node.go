@@ -41,16 +41,14 @@ func (n *Node) closeRaw() error {
 	return n.raw.Close()
 }
 
-func (n *Node) replaceRaw(next connx.Connection) {
+func (n *Node) replaceRaw(next connx.Connection) connx.Connection {
 	old := n.raw
 	n.raw = next
 	n.closedOnce.Store(false)
 	n.generation++
 	n.invalid = false
 	n.lastErr = ""
-	if old != nil {
-		_ = old.Close()
-	}
+	return old
 }
 
 // Conn is the caller-facing borrow handle.

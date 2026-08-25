@@ -445,10 +445,13 @@ func (p *Pool) CompleteReconnect(n *Node, raw connx.Connection, err error) {
 		}
 		return
 	}
-	n.replaceRaw(raw)
+	old := n.replaceRaw(raw)
 	n.lastProbe = p.clk.Now()
 	p.parkIdleLocked(n)
 	p.mu.Unlock()
+	if old != nil {
+		_ = old.Close()
+	}
 	if p.met != nil {
 		p.met.ReconnectOK.Add(1)
 	}
@@ -587,13 +590,17 @@ func (p *Pool) finishClose(n *Node) {
 		return
 	}
 	p.mu.Lock()
-	_ = n.closeRaw()
-	if n.state != StateClosed {
+	wasClosed := n.state == StateClosed
+	if !wasClosed {
 		n.state = StateClosed
 		p.list.Remove(n)
 		p.tomb.Add(1)
 	}
 	p.mu.Unlock()
+	// closeRaw is idempotent (closedOnce guard) and may block on a slow
+	// underlying Close(); call it outside the pool mutex so other Put/Get
+	// callers are not frozen while one connection drains.
+	_ = n.closeRaw()
 	if p.met != nil {
 		p.met.CloseOK.Add(1)
 	}
